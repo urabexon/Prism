@@ -1,0 +1,6 @@
+*.local.*
+/tmp
+prism
+.DS_Store
+.idea
+.vscode
