@@ -1,1 +1,2 @@
 # Prism 💍
+- Testing bubbletea TUI
