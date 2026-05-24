@@ -2,142 +2,127 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"io"
+	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/urabexon/prism/internal/app"
 	"github.com/urabexon/prism/internal/ghclient"
+	"github.com/urabexon/prism/internal/state"
+	"github.com/urabexon/prism/internal/version"
 )
 
-type model struct {
-	prs        []ghclient.PR
-	cursor     int
-	showDetail bool
-	detail     *ghclient.PRDetail
-	showFiles  bool
-	files      []ghclient.File
-}
+const helpText = `prism - TUI for reviewing GitHub Pull Requests
 
-func initialModel(prs []ghclient.PR) model {
-	return model{
-		prs: prs,
+Usage:
+  prism [owner/repo]    Open TUI for the given repo (or current repo)
+  prism -v, --version   Show version
+  prism -h, --help      Show this help
+
+Key bindings (PR list):
+  j/k         Navigate          enter    Open PR
+  c           Checks            m        Merge
+  d           Toggle draft      r        Toggle read
+  R           Refresh           o        Open in browser
+  C-d/C-u     Half-page scroll  q        Quit
+
+Key bindings (file list):
+  j/k         Navigate          enter    View diff
+  space       Toggle reviewed   a        Mark all reviewed
+  c           Checks            m        Merge
+  esc         Back
+
+Key bindings (diff view):
+  j/k         Scroll            d/u      Half-page
+  f/b         Full page         n/N      Next/prev hunk
+  ]/[         Next/prev file    space    Reviewed + next
+  esc         Back
+`
+
+type parseAction int
+
+const (
+	actionRun     parseAction = iota
+	actionVersion
+	actionHelp
+)
+
+func parseArgs(args []string) (parseAction, string) {
+	if len(args) > 1 {
+		switch args[1] {
+		case "-v", "--version":
+			return actionVersion, ""
+		case "-h", "--help":
+			return actionHelp, ""
+		default:
+			return actionRun, args[1]
+		}
 	}
+	return actionRun, ""
 }
 
-func (m model) Init() tea.Cmd {
+func printVersion(w io.Writer) {
+	fmt.Fprintf(w, "prism %s\n", version.Version)
+}
+
+func printHelp(w io.Writer) {
+	fmt.Fprint(w, helpText)
+}
+
+func setup(args []string, stdout, stderr io.Writer) (tea.Model, error) {
+	action, repo := parseArgs(args)
+
+	switch action {
+	case actionVersion:
+		printVersion(stdout)
+		return nil, nil
+	case actionHelp:
+		printHelp(stdout)
+		return nil, nil
+	case actionRun:
+	}
+
+	client := ghclient.NewClient(repo)
+
+	if repo == "" {
+		var err error
+		repo, err = client.ResolveRepo()
+		if err != nil {
+			fmt.Fprintf(stderr, "Error: %v\n", err)
+			fmt.Fprintf(stderr, "Run from a git repo or pass owner/repo as argument.\n")
+			return nil, err
+		}
+	}
+
+	store, err := state.NewStore()
+	if err != nil {
+		fmt.Fprintf(stderr, "Error initializing state: %v\n", err)
+		return nil, err
+	}
+
+	return app.New(repo, client, store), nil
+}
+
+func run(args []string, stdout, stderr io.Writer) error {
+	model, err := setup(args, stdout, stderr)
+	if err != nil {
+		return err
+	}
+	if model == nil {
+		return nil
+	}
+
+	p := tea.NewProgram(model, tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		fmt.Fprintf(stderr, "Error: %v\n", err)
+		return err
+	}
 	return nil
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		// ファイル一覧表示中の場合
-		if m.showFiles {
-			switch msg.String() {
-			case "ctrl+c", "q":
-				return m, tea.Quit
-			case "esc", "backspace":
-				m.showFiles = false
-				m.files = nil
-			}
-			return m, nil
-		}
-
-		// 詳細表示中の場合
-		if m.showDetail {
-			switch msg.String() {
-			case "ctrl+c", "q":
-				return m, tea.Quit
-			case "esc", "backspace":
-				m.showDetail = false
-				m.detail = nil
-			case "f":
-				if m.detail != nil {
-					files, err := ghclient.ListFiles(m.detail.Number)
-					if err == nil {
-						m.files = files
-						m.showFiles = true
-					}
-				}
-			}
-			return m, nil
-		}
-
-		// 一覧表示中の場合
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.prs)-1 {
-				m.cursor++
-			}
-		case "enter":
-			if len(m.prs) > 0 {
-				detail, err := ghclient.GetPRDetail(m.prs[m.cursor].Number)
-				if err == nil {
-					m.detail = detail
-					m.showDetail = true
-				}
-			}
-		}
-	}
-	return m, nil
-}
-
-func (m model) View() string {
-	// ファイル一覧表示モード
-	if m.showFiles && m.files != nil {
-		s := fmt.Sprintf("Files changed in PR #%d\n\n", m.detail.Number)
-		for _, f := range m.files {
-			s += fmt.Sprintf("  %s (+%d/-%d)\n", f.Path, f.Additions, f.Deletions)
-		}
-		s += "\nPress Esc to go back.\n"
-		return s
-	}
-
-	// 詳細表示モード
-	if m.showDetail && m.detail != nil {
-		s := fmt.Sprintf("PR #%d: %s\n", m.detail.Number, m.detail.Title)
-		s += fmt.Sprintf("State: %s\n", m.detail.State)
-		s += fmt.Sprintf("Author: %s\n", m.detail.Author)
-		s += fmt.Sprintf("Created: %s\n", m.detail.CreatedAt)
-		s += fmt.Sprintf("URL: %s\n", m.detail.URL)
-		s += "\n--- Body ---\n"
-		if m.detail.Body != "" {
-			s += m.detail.Body
-		} else {
-			s += "(no description)"
-		}
-		s += "\n\nf: view files | Esc: go back\n"
-		return s
-	}
-
-	// 一覧表示モード
-	s := "Pull Requests\n\n"
-
-	for i, pr := range m.prs {
-		cursor := " "
-		if m.cursor == i {
-			cursor = ">"
-		}
-		s += fmt.Sprintf("%s #%d %s\n", cursor, pr.Number, pr.Title)
-	}
-
-	s += "\nEnter: view detail | q: quit\n"
-	return s
-}
-
 func main() {
-	prs, err := ghclient.ListPRs()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	p := tea.NewProgram(initialModel(prs))
-	if _, err := p.Run(); err != nil {
-		log.Fatal(err)
+	if err := run(os.Args, os.Stdout, os.Stderr); err != nil {
+		os.Exit(1)
 	}
 }
