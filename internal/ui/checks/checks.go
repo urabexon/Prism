@@ -144,6 +144,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 	var b strings.Builder
 
+	// Header
 	header := fmt.Sprintf(" #%d Checks ", m.pr.Number)
 	b.WriteString(styles.Title.Render(header))
 	b.WriteString("\n")
