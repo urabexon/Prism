@@ -115,7 +115,7 @@ type statusCheckJSON struct {
 	Name       string `json:"name"`
 	Status     string `json:"status"`
 	Conclusion string `json:"conclusion"`
-	State      string `json:"state"` // for StatusContext typename
+	State      string `json:"state"`
 }
 
 func computeCheckSummary(checks []statusCheckJSON) CheckSummary {
@@ -136,7 +136,6 @@ func computeCheckSummary(checks []statusCheckJSON) CheckSummary {
 			case "NEUTRAL":
 				cs.Pass++
 			default:
-				// No conclusion yet = pending/in progress
 				cs.Pending++
 			}
 		case "StatusContext":
@@ -269,44 +268,4 @@ type FileDiff struct {
 
 type ParsedDiff struct {
 	Files []FileDiff
-}
-
-type File struct {
-	Path      string `json:"path"`
-	Additions int    `json:"additions"`
-	Deletions int    `json:"deletions"`
-}
-
-type PRDetail struct {
-	Number    int       `json:"number"`
-	Title     string    `json:"title"`
-	Body      string    `json:"body"`
-	State     string    `json:"state"`
-	Author    string    `json:"author"`
-	CreatedAt time.Time `json:"createdAt"`
-	URL       string    `json:"url"`
-}
-
-type prDetailJSON struct {
-	Number int    `json:"number"`
-	Title  string `json:"title"`
-	Body   string `json:"body"`
-	State  string `json:"state"`
-	Author struct {
-		Login string `json:"login"`
-	} `json:"author"`
-	CreatedAt time.Time `json:"createdAt"`
-	URL       string    `json:"url"`
-}
-
-func prDetailFromJSON(p prDetailJSON) PRDetail {
-	return PRDetail{
-		Number:    p.Number,
-		Title:     p.Title,
-		Body:      p.Body,
-		State:     p.State,
-		Author:    p.Author.Login,
-		CreatedAt: p.CreatedAt,
-		URL:       p.URL,
-	}
 }

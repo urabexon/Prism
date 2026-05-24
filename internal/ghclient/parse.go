@@ -128,7 +128,6 @@ func parseHunk(lines []string, start int) (Hunk, int) {
 }
 
 func parseHunkHeader(header string) (oldStart, newStart int) {
-	// @@ -oldStart,oldCount +newStart,newCount @@ optional text
 	header = strings.TrimPrefix(header, "@@ ")
 	parts := strings.SplitN(header, " @@", 2)
 	ranges := strings.Fields(parts[0])
