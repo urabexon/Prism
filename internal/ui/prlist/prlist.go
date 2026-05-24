@@ -35,7 +35,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor--
 			}
 		case "enter":
-			// ここに詳細処理やる
 		}
 	}
 	return m, nil
