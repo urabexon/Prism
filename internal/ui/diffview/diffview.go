@@ -447,10 +447,9 @@ func (m Model) View() string {
 	}
 
 	vpHeight := m.viewportHeight()
-
 	commentInputHeight := 0
 	if m.mode == ModeComment {
-		commentInputHeight = len(m.commentText) + 4 // border + help
+		commentInputHeight = len(m.commentText) + 4
 		vpHeight -= commentInputHeight
 		if vpHeight < 3 {
 			vpHeight = 3
