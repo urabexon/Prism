@@ -100,6 +100,7 @@ func (s *Store) MarkAllReviewed(repo string, number int, paths []string) {
 	}
 }
 
+// ReviewedFileCount returns the number of reviewed files for a PR.
 func (s *Store) ReviewedFileCount(repo string, number int) int {
 	ps := s.prState(repo, number)
 	count := 0
