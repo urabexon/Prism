@@ -36,7 +36,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor--
 			}
 		case "esc":
-			// PRリストに戻る
 		}
 	}
 	return m, nil
