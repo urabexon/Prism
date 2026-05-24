@@ -6,43 +6,21 @@ import (
 	"os/exec"
 )
 
-type Author struct {
-	Login string `json:"login"`
-}
-
-type PR struct {
-	Number int    `json:"number"`
-	Title  string `json:"title"`
-	Author Author `json:"author"`
-}
-
-type File struct {
-	Path      string `json:"path"`
-	Additions int    `json:"additions"`
-	Deletions int    `json:"deletions"`
-}
-
 func ListPRs() ([]PR, error) {
-	cmd := exec.Command("gh", "pr", "list", "--json", "number,title,author")
+	cmd := exec.Command("gh", "pr", "list", "--json", "number,title,author,state,isDraft,additions,deletions,updatedAt,url,headRefName,baseRefName,labels,statusCheckRollup")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
 	}
-	var prs []PR
-	if err := json.Unmarshal(out, &prs); err != nil {
+	var prsJSON []prJSON
+	if err := json.Unmarshal(out, &prsJSON); err != nil {
 		return nil, err
 	}
+	prs := make([]PR, len(prsJSON))
+	for i, p := range prsJSON {
+		prs[i] = prFromJSON(p)
+	}
 	return prs, nil
-}
-
-type PRDetail struct {
-	Number    int    `json:"number"`
-	Title     string `json:"title"`
-	Body      string `json:"body"`
-	State     string `json:"state"`
-	Author    Author `json:"author"`
-	CreatedAt string `json:"createdAt"`
-	URL       string `json:"url"`
 }
 
 func GetPRDetail(number int) (*PRDetail, error) {
@@ -51,10 +29,11 @@ func GetPRDetail(number int) (*PRDetail, error) {
 	if err != nil {
 		return nil, err
 	}
-	var detail PRDetail
-	if err := json.Unmarshal(out, &detail); err != nil {
+	var detailJSON prDetailJSON
+	if err := json.Unmarshal(out, &detailJSON); err != nil {
 		return nil, err
 	}
+	detail := prDetailFromJSON(detailJSON)
 	return &detail, nil
 }
 
@@ -70,4 +49,13 @@ func ListFiles(prNumber int) ([]File, error) {
 		return nil, err
 	}
 	return files, nil
+}
+
+func GetDiff(prNumber int) (string, error) {
+	cmd := exec.Command("gh", "pr", "diff", fmt.Sprintf("%d", prNumber))
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
 }

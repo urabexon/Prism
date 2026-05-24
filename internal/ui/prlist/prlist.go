@@ -3,9 +3,14 @@ package prlist
 import (
 	"fmt"
 
-	tea	"github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/urabexon/prism/internal/ghclient"
 )
+
+type Model struct {
+	prs    []ghclient.PR
+	cursor int
+}
 
 func New(prs []ghclient.PR) Model {
 	return Model{prs: prs}

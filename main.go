@@ -102,7 +102,7 @@ func (m model) View() string {
 	if m.showDetail && m.detail != nil {
 		s := fmt.Sprintf("PR #%d: %s\n", m.detail.Number, m.detail.Title)
 		s += fmt.Sprintf("State: %s\n", m.detail.State)
-		s += fmt.Sprintf("Author: %s\n", m.detail.Author.Login)
+		s += fmt.Sprintf("Author: %s\n", m.detail.Author)
 		s += fmt.Sprintf("Created: %s\n", m.detail.CreatedAt)
 		s += fmt.Sprintf("URL: %s\n", m.detail.URL)
 		s += "\n--- Body ---\n"
