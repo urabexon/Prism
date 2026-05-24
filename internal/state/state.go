@@ -32,7 +32,7 @@ func NewStore() (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("config dir: %w", err)
 	}
-	dir := filepath.Join(configDir, "ghpr-tui")
+	dir := filepath.Join(configDir, "prism")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("creating state dir: %w", err)
 	}

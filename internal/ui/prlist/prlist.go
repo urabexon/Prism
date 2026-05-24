@@ -214,7 +214,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 	var b strings.Builder
 
-	header := styles.Title.Render(fmt.Sprintf(" ghpr-tui — %s", m.repo))
+	header := styles.Title.Render(fmt.Sprintf(" prism — %s", m.repo))
 	b.WriteString(header)
 	b.WriteString("\n")
 
